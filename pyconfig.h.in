@@ -1881,6 +1881,9 @@
 /* Define if you want to use computed gotos in ceval.c. */
 #undef USE_COMPUTED_GOTOS
 
+/* Define whether to use rustls as ssl backend */
+#undef USE_RUSTLS
+
 /* Enable extensions on AIX, Interix, z/OS.  */
 #ifndef _ALL_SOURCE
 # undef _ALL_SOURCE

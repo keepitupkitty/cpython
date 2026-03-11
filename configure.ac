@@ -7641,6 +7641,31 @@ WITH_SAVE_ENV([
   ])
 ])
 
+# Check for rustls
+AC_ARG_WITH([rustls],
+  [AS_HELP_STRING([--with-rustls=DIR],
+    [root of the rustls ffi bindings directory]
+  )],
+  [],
+  [with_rustls=check]
+)
+
+AS_IF([test "x$with_rustls" != xno],[
+  AC_CHECK_HEADER([rustls.h],
+    [],
+    [AC_MSG_ERROR([rustls-ffi headers are not installed. Install rustls-ffi headers or pass --wtih-rustls=DIR with headers being present])]
+  )
+  AC_CHECK_LIB([rustls], [rustls_client_config_builder_build],
+    [RUSTLS_LIBS="-lrustls"],
+    [AC_MSG_ERROR([rustls-ffi libaries are broken. Install rustls-ffi libraries again or pass --wtih-rustls=DIR with working libraries])]
+  )
+
+  AC_SUBST([RUSTLS_LIBS])
+  AC_DEFINE([USE_RUSTLS], [1], [Define whether to use rustls as ssl backend])
+
+  AC_MSG_NOTICE([configured to use with rustls])
+])
+
 # ssl module default cipher suite string
 AH_TEMPLATE([PY_SSL_DEFAULT_CIPHERS],
   [Default cipher suites list for ssl module.
@@ -8273,9 +8298,18 @@ PY_STDLIB_MOD([_lzma], [], [test "$have_liblzma" = yes],
 PY_STDLIB_MOD([_zstd], [], [test "$have_libzstd" = yes],
   [$LIBZSTD_CFLAGS], [$LIBZSTD_LIBS])
 
-dnl OpenSSL bindings
-PY_STDLIB_MOD([_ssl], [], [test "$ac_cv_working_openssl_ssl" = yes],
+if test "$with_rustls" = yes; then
+dnl Rustls bindings for _ssl
+PY_STDLIB_MOD([_ssl_rustls], [], [test "$with_rustls" = yes], [], [$RUSTLS_LIBS])
+PY_STDLIB_MOD([_ssl_openssl], [], [false], [])
+else
+dnl OpenSSL bindings for _ssl
+PY_STDLIB_MOD([_ssl_openssl], [], [test "$ac_cv_working_openssl_ssl" = yes],
   [$OPENSSL_INCLUDES], [$OPENSSL_LDFLAGS $OPENSSL_LDFLAGS_RPATH $OPENSSL_LIBS])
+PY_STDLIB_MOD([_ssl_rustls], [], [false], [])
+fi
+
+dnl OpenSSL bindings for _hashlib
 PY_STDLIB_MOD([_hashlib], [], [test "$ac_cv_working_openssl_hashlib" = yes],
   [$OPENSSL_INCLUDES], [$OPENSSL_LDFLAGS $OPENSSL_LDFLAGS_RPATH $LIBCRYPTO_LIBS])
 
